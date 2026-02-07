@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""PreCompact hook — archives transcript before context compression."""
+"""PreCompact hook — archives user messages before context compression."""
 
 import json
 import os
 import sys
-import urllib.request
+from datetime import datetime, timezone
 
-TOKEN = os.environ.get("MCP_AUTH_TOKEN", "")
-SERVER = os.environ.get("MCP_SERVER_URL", "https://claude-connector.example.com")
+# Add hooks dir to path for shared module
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from mcp_client import call_mcp_tool
 
 
 def main():
@@ -25,27 +26,29 @@ def main():
         json.dump({}, sys.stdout)
         return
 
-    # Read and summarize transcript content
-    transcript_summary = summarize_transcript(transcript_path)
+    summary = extract_user_messages(transcript_path)
 
-    if transcript_summary:
+    if summary:
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
         try:
             call_mcp_tool("save_context", {
                 "project": project,
-                "content": transcript_summary,
+                "content": summary,
                 "type": "context",
-                "title": f"Pre-compact archive: {session_id[:12] if session_id else 'unknown'}",
+                "title": f"Compact — {project} @ {timestamp}",
                 "tags": ["auto-captured", "pre-compact"],
             })
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[pre-compact] save_context failed: {e}", file=sys.stderr)
 
     json.dump({}, sys.stdout)
 
 
-def summarize_transcript(transcript_path: str) -> str:
-    """Build a summary of the transcript for archival."""
+def extract_user_messages(transcript_path: str) -> str:
+    """Extract user messages from transcript (300 chars each, 3000 total cap)."""
     messages = []
+    total_len = 0
+
     try:
         with open(transcript_path) as f:
             for line in f:
@@ -54,9 +57,10 @@ def summarize_transcript(transcript_path: str) -> str:
                     continue
                 try:
                     entry = json.loads(line)
-                    role = entry.get("role", "")
-                    content = entry.get("content", "")
+                    if entry.get("role") != "user":
+                        continue
 
+                    content = entry.get("content", "")
                     if isinstance(content, list):
                         texts = [
                             c.get("text", "")
@@ -66,59 +70,19 @@ def summarize_transcript(transcript_path: str) -> str:
                         content = "\n".join(texts)
 
                     if isinstance(content, str) and content.strip():
-                        # Keep first 500 chars of each message
-                        truncated = content.strip()[:500]
-                        messages.append(f"[{role}]: {truncated}")
+                        truncated = content.strip()[:300]
+                        msg = f"- {truncated}"
+                        if total_len + len(msg) > 3000:
+                            break
+                        messages.append(msg)
+                        total_len += len(msg)
                 except json.JSONDecodeError:
                     continue
-    except Exception:
+    except Exception as e:
+        print(f"[pre-compact] transcript read failed: {e}", file=sys.stderr)
         return ""
 
-    if not messages:
-        return ""
-
-    # Build a compact summary, limit total to 5000 chars
-    summary = "\n\n".join(messages)
-    if len(summary) > 5000:
-        summary = summary[:5000] + "\n\n[...truncated]"
-
-    return summary
-
-
-def call_mcp_tool(tool_name: str, arguments: dict) -> dict | None:
-    """Call an MCP tool via the server's HTTP endpoint."""
-    url = f"{SERVER}/mcp"
-
-    payload = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "tools/call",
-        "params": {
-            "name": tool_name,
-            "arguments": arguments,
-        },
-    }
-
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {TOKEN}",
-        },
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=25) as resp:
-            result = json.loads(resp.read())
-            if "result" in result:
-                content = result["result"].get("content", [])
-                for item in content:
-                    if item.get("type") == "text":
-                        return json.loads(item["text"])
-    except Exception:
-        return None
-    return None
+    return "\n".join(messages)
 
 
 if __name__ == "__main__":
