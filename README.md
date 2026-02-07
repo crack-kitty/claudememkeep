@@ -79,15 +79,19 @@ curl https://claude-connector.YOUR_DOMAIN/health
 # Should return: {"status":"healthy"}
 ```
 
-### Step 3: Retrieve your auth token
+### Step 3: Set up your auth token
 
-The token was auto-generated during Step 1. Retrieve it with:
+The token was auto-generated during Step 1. Create a secrets file that the hooks will source:
 
 ```bash
+# Get your token
 grep CLAUDE_CONNECTOR_AUTH_TOKEN /apps/onramp/services-enabled/claude-connector.env
+
+# Save it to ~/.claude/.secrets (this file is gitignored and stays on this machine)
+echo 'export MCP_AUTH_TOKEN=YOUR_TOKEN_HERE' > ~/.claude/.secrets
 ```
 
-Save this value — you'll need it for Steps 4 and 6.
+This is a one-time setup per machine. If you skip this step, the hooks will print a clear error telling you what to do.
 
 ### Step 4: Register MCP server with Claude Code
 
@@ -103,7 +107,7 @@ Verify it works by starting a Claude Code session and asking it to call `get_pro
 
 ### Step 5: Configure hooks (optional)
 
-Hooks automate context capture. They inject recent shared context at session start and save session summaries at session end.
+Hooks automate context capture. They register sessions, sync MEMORY.md, save structured summaries, and archive transcripts before compaction.
 
 Add to your Claude Code settings (`~/.claude/settings.json`):
 
@@ -115,7 +119,7 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
         "hooks": [
           {
             "type": "command",
-            "command": "MCP_AUTH_TOKEN=YOUR_TOKEN_HERE python3 /path/to/claudememkeep/hooks/session-start.py",
+            "command": "bash -c 'source ~/.claude/.secrets 2>/dev/null; python3 /path/to/claudememkeep/hooks/session-start.py'",
             "timeout": 10
           }
         ]
@@ -126,7 +130,7 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
         "hooks": [
           {
             "type": "command",
-            "command": "MCP_AUTH_TOKEN=YOUR_TOKEN_HERE python3 /path/to/claudememkeep/hooks/session-end.py",
+            "command": "bash -c 'source ~/.claude/.secrets 2>/dev/null; python3 /path/to/claudememkeep/hooks/session-end.py'",
             "timeout": 30
           }
         ]
@@ -137,7 +141,7 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
         "hooks": [
           {
             "type": "command",
-            "command": "MCP_AUTH_TOKEN=YOUR_TOKEN_HERE python3 /path/to/claudememkeep/hooks/pre-compact.py",
+            "command": "bash -c 'source ~/.claude/.secrets 2>/dev/null; python3 /path/to/claudememkeep/hooks/pre-compact.py'",
             "timeout": 30
           }
         ]
@@ -147,9 +151,7 @@ Add to your Claude Code settings (`~/.claude/settings.json`):
 }
 ```
 
-Replace `/path/to/claudememkeep` with the actual path where this repo lives, and `YOUR_TOKEN_HERE` with the token from Step 3.
-
-The hooks use environment variables so you can also set `MCP_AUTH_TOKEN` globally in your shell profile instead of inlining it.
+Replace `/path/to/claudememkeep` with the actual path where this repo lives. The token is read from `~/.claude/.secrets` which you created in Step 3 — no secrets in this file.
 
 ### Step 6: Connect Claude.ai (optional)
 
@@ -195,12 +197,14 @@ All configuration is in `/apps/onramp/services-enabled/claude-connector.env`:
 
 ### Hook environment variables
 
+These are sourced from `~/.claude/.secrets` (see Step 3):
+
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `MCP_AUTH_TOKEN` | Auth token (same as above) | None (required) |
 | `MCP_SERVER_URL` | Server base URL | `https://claude-connector.example.com` |
 
-Override `MCP_SERVER_URL` if your domain differs from the default.
+Override `MCP_SERVER_URL` in `~/.claude/.secrets` if your domain differs from the default.
 
 ## Local Development
 
