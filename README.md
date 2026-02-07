@@ -10,6 +10,44 @@ A shared memory layer for Claude Code and Claude.ai. Both interfaces connect to 
 - Full-text search across all stored context
 - Automatic session capture via Claude Code hooks
 
+## Architecture: Server vs. Hooks
+
+This repo contains **two separate pieces** that are deployed differently:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    MCP Server (Docker)                   │
+│         server/app.py + PostgreSQL database              │
+│         Runs once, centrally, serves everyone            │
+│                                                         │
+│   Claude.ai ──Connector──> /mcp ──> 6 tools ──> DB     │
+│   Claude Code ──MCP─────> /mcp ──> 6 tools ──> DB     │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│              Hooks (local per machine)                   │
+│         hooks/*.py — run by Claude Code locally          │
+│         Each machine running Claude Code needs its own   │
+│         copy of these files + configuration              │
+│                                                         │
+│   SessionStart  → registers session, syncs MEMORY.md    │
+│   SessionEnd    → saves structured session summary      │
+│   PreCompact    → archives user messages before compact  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**The server** (`server/`, `sql/`) is the shared bridge between Claude Code and Claude.ai. It gets packaged into a Docker image and deployed once — via onramp, plain Docker, or however you like. Both Claude.ai (via Connector) and Claude Code (via MCP) connect to it and share the same database. Changes to server code require rebuilding the container (`make update-service claude-connector`).
+
+**The hooks** (`hooks/`) are client-side scripts that run locally on each machine where Claude Code is installed. They automate context capture — syncing MEMORY.md, saving session summaries, archiving transcripts before compaction. The server can serve multiple Claude Code instances across different machines, but each machine needs its own local copy of the hooks configured in `~/.claude/settings.json`.
+
+**When do you need to update what?**
+
+| Change made to... | What to do |
+|---|---|
+| `server/` or `sql/` | Rebuild and restart the container |
+| `hooks/` | `git pull` on each machine running Claude Code |
+| `docker-compose.yml` or onramp config | `make restart` in onramp |
+
 ## Prerequisites
 
 - [Onramp](https://github.com/traefikturkey/onramp) deployment framework with Traefik
@@ -192,15 +230,4 @@ The local dev stack uses `dev-token` as the auth token and maps to port 8081.
 
 ## Architecture
 
-```
-Claude Code ──MCP──> ┌─────────────────────┐
-                     │  FastMCP Server      │
-                     │  (server/app.py)     │──> PostgreSQL
-                     │  6 tools + /health   │    (full-text search)
-Claude.ai ───MCP──> └─────────────────────┘
-
-Hooks (optional):
-  SessionStart  → injects recent context into new sessions
-  SessionEnd    → saves session summary
-  PreCompact    → archives transcript before context compression
-```
+See [Architecture: Server vs. Hooks](#architecture-server-vs-hooks) at the top for the full picture.
