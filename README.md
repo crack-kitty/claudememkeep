@@ -159,7 +159,7 @@ All configuration is in `/apps/onramp/services-enabled/claude-connector.env`:
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `MCP_AUTH_TOKEN` | Auth token (same as above) | None (required) |
-| `MCP_SERVER_URL` | Server base URL | `https://claude-connector.ckcompute.xyz` |
+| `MCP_SERVER_URL` | Server base URL | `https://claude-connector.example.com` |
 
 Override `MCP_SERVER_URL` if your domain differs from the default.
 

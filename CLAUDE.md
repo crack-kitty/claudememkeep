@@ -16,7 +16,7 @@ A FastMCP server providing shared context/memory between Claude Code and Claude.
 
 - Python 3.12, FastMCP 2.x, asyncpg, uvicorn
 - PostgreSQL 16 with TSVECTOR full-text search
-- Docker, deployed via onramp framework as `claude-connector.ckcompute.xyz`
+- Docker, deployed via onramp framework as `claude-connector.example.com`
 
 ## MCP Tools
 

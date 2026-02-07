@@ -11,7 +11,7 @@ from starlette.responses import JSONResponse
 from server import db
 
 _token = os.environ.get("MCP_AUTH_TOKEN", "dev-token")
-_base_url = os.environ.get("MCP_BASE_URL", "https://claude-connector.ckcompute.xyz")
+_base_url = os.environ.get("MCP_BASE_URL", "https://claude-connector.example.com")
 
 
 class HybridAuthProvider(InMemoryOAuthProvider):

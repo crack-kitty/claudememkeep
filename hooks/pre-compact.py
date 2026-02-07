@@ -7,7 +7,7 @@ import sys
 import urllib.request
 
 TOKEN = os.environ.get("MCP_AUTH_TOKEN", "")
-SERVER = os.environ.get("MCP_SERVER_URL", "https://claude-connector.ckcompute.xyz")
+SERVER = os.environ.get("MCP_SERVER_URL", "https://claude-connector.example.com")
 
 
 def main():
