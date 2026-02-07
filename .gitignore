@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment
+.env
+
+# Claude Code local settings
+.claude/
+
+# Scratch / planning files
+memory-keeper_markdown.md
+forme.md

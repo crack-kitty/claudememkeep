@@ -1,0 +1,29 @@
+services:
+  claude-connector:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - DATABASE_URL=postgresql://claude_connector:claude_connector@claude-connector-db:5432/claude_connector
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-dev-token}
+    depends_on:
+      claude-connector-db:
+        condition: service_healthy
+
+  claude-connector-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: claude_connector
+      POSTGRES_PASSWORD: claude_connector
+      POSTGRES_DB: claude_connector
+    volumes:
+      - claude-connector-pgdata:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claude_connector"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  claude-connector-pgdata:
