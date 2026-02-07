@@ -79,7 +79,7 @@ curl https://claude-connector.YOUR_DOMAIN/health
 # Should return: {"status":"healthy"}
 ```
 
-### Step 3: Set up your auth token
+### Step 3: Set up your secrets file
 
 The token was auto-generated during Step 1. Create a secrets file that the hooks will source:
 
@@ -87,11 +87,14 @@ The token was auto-generated during Step 1. Create a secrets file that the hooks
 # Get your token
 grep CLAUDE_CONNECTOR_AUTH_TOKEN /apps/onramp/services-enabled/claude-connector.env
 
-# Save it to ~/.claude/.secrets (this file is gitignored and stays on this machine)
-echo 'export MCP_AUTH_TOKEN=YOUR_TOKEN_HERE' > ~/.claude/.secrets
+# Create ~/.claude/.secrets (gitignored, one-time setup per machine)
+cat > ~/.claude/.secrets << 'EOF'
+export MCP_AUTH_TOKEN=your-token-here
+export MCP_SERVER_URL=https://claude-connector.your-domain.com
+EOF
 ```
 
-This is a one-time setup per machine. If you skip this step, the hooks will print a clear error telling you what to do.
+Replace both values with your actual token and domain. This is a one-time setup per machine. If you skip this step, the hooks will print a clear error telling you what to do.
 
 ### Step 4: Register MCP server with Claude Code
 

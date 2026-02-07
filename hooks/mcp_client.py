@@ -8,30 +8,31 @@ import urllib.request
 TOKEN = os.environ.get("MCP_AUTH_TOKEN", "")
 SERVER = os.environ.get("MCP_SERVER_URL", "https://claude-connector.example.com")
 
-_MISSING_TOKEN_WARNING = """
-╔══════════════════════════════════════════════════════════════════╗
-║  claude-connector: MCP_AUTH_TOKEN is not set!                    ║
-║                                                                  ║
-║  The hooks can't talk to the server without it.                  ║
-║  Create ~/.claude/.secrets with this line:                       ║
-║                                                                  ║
-║    export MCP_AUTH_TOKEN=your-token-here                         ║
-║                                                                  ║
-║  Get your token from:                                            ║
-║    grep CLAUDE_CONNECTOR_AUTH_TOKEN                               ║
-║      /apps/onramp/services-enabled/claude-connector.env          ║
-╚══════════════════════════════════════════════════════════════════╝
+_MISSING_SECRETS_WARNING = """
+╔═══════════════════════════════════════════════════════════════════════╗
+║  claude-connector: ~/.claude/.secrets is missing or incomplete!       ║
+║                                                                       ║
+║  The hooks can't talk to the server without it.                       ║
+║  Create ~/.claude/.secrets with these two lines:                      ║
+║                                                                       ║
+║    export MCP_AUTH_TOKEN=your-token-here                              ║
+║    export MCP_SERVER_URL=https://claude-connector.your-domain.com     ║
+║                                                                       ║
+║  Get your token from:                                                 ║
+║    grep CLAUDE_CONNECTOR_AUTH_TOKEN                                    ║
+║      /apps/onramp/services-enabled/claude-connector.env               ║
+╚═══════════════════════════════════════════════════════════════════════╝
 """.strip()
 
-_token_warned = False
+_secrets_warned = False
 
 
 def call_mcp_tool(tool_name: str, arguments: dict, timeout: int = 10) -> dict | None:
     """Call an MCP tool via the server's HTTP endpoint."""
-    global _token_warned
-    if not TOKEN and not _token_warned:
-        print(_MISSING_TOKEN_WARNING, file=sys.stderr)
-        _token_warned = True
+    global _secrets_warned
+    if (not TOKEN or SERVER == "https://claude-connector.example.com") and not _secrets_warned:
+        print(_MISSING_SECRETS_WARNING, file=sys.stderr)
+        _secrets_warned = True
         return None
 
     url = f"{SERVER}/mcp"
