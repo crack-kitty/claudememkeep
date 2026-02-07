@@ -51,9 +51,10 @@ This repo contains **two separate pieces** that are deployed differently:
 ## Prerequisites
 
 - [Onramp](https://github.com/traefikturkey/onramp) deployment framework with Traefik
-- [Joyride](https://github.com/traefikturkey/joyride) DNS (with clustering enabled if multi-host)
 - Docker and Docker Compose
 - Claude Code CLI installed
+
+> **Note on Onramp:** This application was built to run inside the onramp framework, which handles Traefik routing, env scaffolding, and service lifecycle. Onramp also installs Docker and Compose for you, so if you're using onramp those aren't separate prerequisites. That said, the server is just a Docker Compose stack — if you'd rather run it standalone, fork away and adapt the compose file to your setup.
 
 ## Installation
 
