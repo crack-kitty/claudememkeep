@@ -32,6 +32,17 @@ class GetRecentActivityInput(BaseModel):
     hours: int = Field(default=48, description="How many hours back to look", ge=1, le=720)
 
 
+class UpdateArtifactInput(BaseModel):
+    id: int = Field(description="The artifact ID to update")
+    content: str = Field(description="The new content")
+    project: str = Field(description="Project the artifact belongs to")
+
+
+class DeleteArtifactInput(BaseModel):
+    id: int = Field(description="The artifact ID to delete")
+    project: str = Field(description="Project the artifact belongs to")
+
+
 class LogSessionInput(BaseModel):
     session_id: str = Field(description="Unique session identifier")
     source: str = Field(description="Source: claude_ai or claude_code")

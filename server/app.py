@@ -164,6 +164,41 @@ async def log_session(
     return {"session": result}
 
 
+@mcp.tool()
+async def update_artifact(id: int, content: str, project: str) -> dict:
+    """Update the content of an existing artifact.
+
+    Replaces the content of the artifact with the given ID.
+    The artifact must belong to the specified project.
+
+    Args:
+        id: The artifact ID to update
+        content: The new content to replace the existing content
+        project: Project the artifact belongs to
+    """
+    result = await db.update_artifact(id=id, content=content, project=project)
+    if result is None:
+        return {"error": f"Artifact {id} not found in project '{project}'"}
+    return {"updated": result}
+
+
+@mcp.tool()
+async def delete_artifact(id: int, project: str) -> dict:
+    """Delete an artifact from shared memory.
+
+    Permanently removes the artifact with the given ID.
+    The artifact must belong to the specified project.
+
+    Args:
+        id: The artifact ID to delete
+        project: Project the artifact belongs to
+    """
+    deleted = await db.delete_artifact(id=id, project=project)
+    if not deleted:
+        return {"error": f"Artifact {id} not found in project '{project}'"}
+    return {"deleted": True, "id": id}
+
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request):
     """Health check endpoint."""

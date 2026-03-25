@@ -159,6 +159,38 @@ async def get_recent(project: str = "default", hours: int = 48) -> dict:
         }
 
 
+async def update_artifact(
+    id: int,
+    content: str,
+    project: str,
+) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE artifacts
+            SET content = $1
+            WHERE id = $2 AND project = $3
+            RETURNING id, project, type, title, content, tags, source_session, created_at
+            """,
+            content,
+            id,
+            project,
+        )
+        return _row_to_dict(row) if row else None
+
+
+async def delete_artifact(id: int, project: str) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM artifacts WHERE id = $1 AND project = $2",
+            id,
+            project,
+        )
+        return result == "DELETE 1"
+
+
 async def upsert_session(
     session_id: str,
     source: str,
